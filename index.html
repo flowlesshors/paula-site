@@ -50,8 +50,10 @@
     .reply-form label { display:block; margin-bottom:10px; text-align:center; font-size:20px; font-weight:700; }
     .reply-form textarea { width:100%; min-height:120px; resize:vertical; padding:14px 16px; border:1px solid #efd5db; border-radius:18px; color:var(--ink); background:#fffafa; font:16px/1.5 inherit; font-family:inherit; outline:none; }
     .reply-form textarea:focus { border-color:var(--pink); box-shadow:0 0 0 3px #e9869c22; }
-    #send-reply { display:none; margin:14px auto 0; color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
-    #send-reply.show { display:block; }
+    .send-actions { display:none; justify-content:center; flex-wrap:wrap; gap:12px; margin-top:14px; }
+    .send-actions.show { display:flex; }
+    #send-reply { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
+    #send-whatsapp { color:white; background:linear-gradient(135deg,#42c777,#1ca657); box-shadow:0 8px 20px #1ca65735; }
     .send-status { display:none; margin-top:12px!important; text-align:center; font-size:14px!important; }
     .send-status.show { display:block; }
     .send-success { display:none; margin:22px auto 0; animation:appear .6s ease both; }
@@ -136,7 +138,10 @@
         <form id="reply-form" class="reply-form">
           <label for="paula-reply">Spune-mi ce simți</label>
           <textarea id="paula-reply" name="reply" placeholder="Scrie aici ce simți…" required></textarea>
-          <button id="send-reply" type="submit">Trimite răspunsul</button>
+          <div id="send-actions" class="send-actions">
+            <button id="send-reply" type="submit">Trimite prin email</button>
+            <button id="send-whatsapp" type="button">Trimite pe WhatsApp</button>
+          </div>
           <p id="send-status" class="send-status" role="status" aria-live="polite"></p>
         </form>
         <section id="send-success" class="send-success" aria-live="polite">
@@ -200,8 +205,19 @@
     });
     const replyInput = document.getElementById('paula-reply');
     const sendReply = document.getElementById('send-reply');
+    const sendActions = document.getElementById('send-actions');
     replyInput.addEventListener('input', () => {
-      sendReply.classList.toggle('show', replyInput.value.trim().length > 0);
+      sendActions.classList.toggle('show', replyInput.value.trim().length > 0);
+    });
+    document.getElementById('send-whatsapp').addEventListener('click', () => {
+      const whatsappNumber = '40775324210';
+      const message = encodeURIComponent(replyInput.value.trim());
+      const sendStatus = document.getElementById('send-status');
+      document.getElementById('send-success').classList.add('show');
+      sendStatus.classList.add('show');
+      sendStatus.textContent = 'Se deschide WhatsApp. Apasă „Trimite” în conversație ca să trimiți răspunsul.';
+      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank', 'noopener');
+      document.getElementById('send-success').scrollIntoView({ behavior:'smooth', block:'center' });
     });
     document.getElementById('reply-form').addEventListener('submit', event => {
       event.preventDefault();
