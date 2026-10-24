@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff4f1">
+  <title>Pentru Paula 💗</title>
+  <style>
+    :root { color-scheme: light; --ink:#473638; --pink:#e9869c; --deep:#bd5c78; }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100svh; display:grid; place-items:center; overflow-x:hidden; overflow-y:auto; padding:24px; color:var(--ink); font-family: ui-rounded, "Avenir Next", Avenir, system-ui, sans-serif; background:radial-gradient(ellipse at 15% 15%,#fff 0,transparent 42%),linear-gradient(145deg,#fff4f1,#fce4eb 65%,#f8dce8); }
+    .glow { position:fixed; width:340px;height:340px;border-radius:50%;filter:blur(60px);opacity:.42;pointer-events:none;background:#f6afc1; }
+    .glow.one {top:-170px;right:-80px}.glow.two {bottom:-210px;left:-90px;background:#f8c99d}
+    .card { position:relative; width:min(100%,560px); padding:clamp(30px,7vw,58px) clamp(24px,7vw,58px) 42px; text-align:center; border:1px solid #fff9; border-radius:32px; background:#fffdfbf0; box-shadow:0 24px 80px #a95d6b20,0 4px 14px #a95d6b12; }
+    .tiny-heart { color:var(--pink); font-size:24px; animation:beat 1.7s ease-in-out infinite; }
+    h1 { margin:14px 0 10px; font-size:clamp(30px,8vw,46px); letter-spacing:-1.7px; line-height:1.12; }
+    .subtitle { max-width:370px; margin:0 auto; color:#806c70; font-size:16px; line-height:1.65; }
+    .question { margin:27px 0 22px; font-size:20px; font-weight:700; }
+    .buttons { position:relative; display:flex; align-items:center; justify-content:center; gap:15px; min-height:58px; }
+    .continue-wrap { margin-top:18px; }
+    #continue { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
+    #continue:hover { transform:translateY(-2px) scale(1.03); box-shadow:0 12px 24px #d96f8c55; }
+    button { border:0; border-radius:999px; padding:14px 28px; font:700 16px inherit; font-family:inherit; font-size:16px; cursor:pointer; transition:transform .2s,box-shadow .2s,background .2s; }
+    #yes { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
+    #yes:hover { transform:translateY(-2px) scale(1.04); box-shadow:0 12px 24px #d96f8c55; }
+    #no { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; position:relative; touch-action:manipulation; }
+    .hint { margin:15px 0 0; min-height:22px; color:#a18b90; font-size:13px; }
+    .response { display:none; margin:28px auto 0; max-width:390px; animation:appear .55s ease both; }
+    .response.show { display:block; }
+    .response .big { font-size:42px; }
+    .penguins { display:block; width:132px; height:92px; margin:0 auto 8px; overflow:visible; }
+    .penguin { transform-box:fill-box; transform-origin:center; }
+    .penguin.left { animation: cuddle-left 2.8s ease-in-out infinite; }
+    .penguin.right { animation: cuddle-right 2.8s ease-in-out infinite; }
+    .response h2 { margin:10px 0; font-size:26px; letter-spacing:-.6px; }
+    .response p { color:#806c70; line-height:1.7; margin:0; }
+    .next-message { display:none; margin-top:16px!important; animation:appear .55s ease both; }
+    .next-message.show { display:block; }
+    .next-continue { display:none; margin:16px auto 0; color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
+    .next-continue.show { display:block; }
+    .hedgehog-scene { display:none; margin:30px auto 0; animation:appear .65s ease both; }
+    .hedgehog-scene.show { display:block; }
+    .hedgehogs { display:block; width:190px; height:132px; margin:0 auto 14px; }
+    .hedgehog.left { animation: hedgehog-left 1.7s ease-in-out infinite alternate; transform-origin:70px 75px; }
+    .hedgehog.right { animation: hedgehog-right 1.7s ease-in-out infinite alternate; transform-origin:130px 75px; }
+    .hedgehog-message { max-width:430px; margin:0 auto!important; color:var(--deep)!important; font-weight:700; }
+    .reply-start { margin-top:20px; }
+    .reply-form { display:none; max-width:430px; margin:24px auto 0; text-align:left; animation:appear .55s ease both; }
+    .reply-form.show { display:block; }
+    .reply-form label { display:block; margin-bottom:10px; text-align:center; font-size:20px; font-weight:700; }
+    .reply-form textarea { width:100%; min-height:120px; resize:vertical; padding:14px 16px; border:1px solid #efd5db; border-radius:18px; color:var(--ink); background:#fffafa; font:16px/1.5 inherit; font-family:inherit; outline:none; }
+    .reply-form textarea:focus { border-color:var(--pink); box-shadow:0 0 0 3px #e9869c22; }
+    #send-reply { display:none; margin:14px auto 0; color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
+    #send-reply.show { display:block; }
+    .send-status { display:none; margin-top:12px!important; text-align:center; font-size:14px!important; }
+    .send-status.show { display:block; }
+    .response .signoff { margin-top:18px; color:var(--deep); font-weight:700; }
+    .sparkle { position:fixed; pointer-events:none; font-size:18px; animation:float 3s ease-in-out infinite; opacity:.65; }
+    @keyframes beat { 50% { transform:scale(1.18) } }
+    @keyframes appear { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes float { 0%,100% { transform:translateY(0) rotate(-8deg) } 50% { transform:translateY(-12px) rotate(8deg) } }
+    @keyframes cuddle-left { 0%,100% { transform:translateX(0) rotate(-3deg) } 50% { transform:translateX(4px) rotate(2deg) } }
+    @keyframes cuddle-right { 0%,100% { transform:translateX(0) rotate(3deg) } 50% { transform:translateX(-4px) rotate(-2deg) } }
+    @keyframes hedgehog-left { to { transform:translateX(5px) rotate(2deg) } }
+    @keyframes hedgehog-right { to { transform:translateX(-5px) rotate(-2deg) } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; } }
+  </style>
+</head>
+<body>
+  <div class="glow one"></div><div class="glow two"></div>
+  <span class="sparkle" style="top:16%;left:13%">♡</span><span class="sparkle" style="top:23%;right:12%;animation-delay:.8s">✦</span><span class="sparkle" style="bottom:18%;right:17%;animation-delay:1.3s">♡</span>
+  <main class="card">
+    <div class="tiny-heart" aria-hidden="true">♥</div>
+    <h1>Știu că te-am supărat și vreau să te simți mai bine 🥺</h1>
+    <p class="subtitle">Vreau să știu cum te simți acum.</p>
+    <p class="question">Paula, ești supărată?</p>
+    <div class="buttons" id="buttons">
+      <button id="yes" type="button">DA</button>
+      <button id="no" type="button" aria-label="Nu (butonul se ferește în joacă)">Nu</button>
+    </div>
+    <section class="response" id="response" aria-live="polite">
+      <svg class="penguins" viewBox="0 0 160 110" role="img" aria-label="Doi pinguini care se îmbrățișează">
+        <g class="penguin left">
+          <ellipse cx="55" cy="64" rx="29" ry="36" fill="#394552"/>
+          <ellipse cx="55" cy="69" rx="19" ry="25" fill="#fffaf7"/>
+          <ellipse cx="48" cy="43" rx="3" ry="4" fill="#29313a"/><ellipse cx="62" cy="43" rx="3" ry="4" fill="#29313a"/>
+          <path d="M52 51 Q55 48 58 51 L55 55Z" fill="#f1a64b"/>
+          <path d="M34 66 Q20 59 27 51 Q35 50 42 62" fill="#394552"/>
+          <ellipse cx="45" cy="98" rx="11" ry="4" fill="#f3a44e"/><ellipse cx="64" cy="98" rx="11" ry="4" fill="#f3a44e"/>
+        </g>
+        <g class="penguin right">
+          <ellipse cx="105" cy="64" rx="29" ry="36" fill="#596978"/>
+          <ellipse cx="105" cy="69" rx="19" ry="25" fill="#fffaf7"/>
+          <ellipse cx="98" cy="43" rx="3" ry="4" fill="#29313a"/><ellipse cx="112" cy="43" rx="3" ry="4" fill="#29313a"/>
+          <path d="M102 51 Q105 48 108 51 L105 55Z" fill="#f1a64b"/>
+          <path d="M126 66 Q140 59 133 51 Q125 50 118 62" fill="#596978"/>
+          <ellipse cx="95" cy="98" rx="11" ry="4" fill="#f3a44e"/><ellipse cx="114" cy="98" rx="11" ry="4" fill="#f3a44e"/>
+        </g>
+        <path d="M76 29 C70 22 61 31 76 41 C91 31 82 22 76 29Z" fill="#e9869c"/>
+      </svg>
+      <p>Știu că de fapt încă ești supărată pe mine pentru ce am făcut. Îmi pare rău. Țin mult la tine și vreau să te ascult și să înțeleg cum te simți, fără să te grăbesc.</p>
+      <div class="continue-wrap"><button id="continue" type="button">Click aici pentru continuare</button></div>
+      <p id="next-message" class="next-message" aria-live="polite">Îmi pare rău pentru cum am reacționat și că am dat dovadă de dezinteres, în loc să fiu curios despre ce îți cauzează ție neplăcere. Nu am făcut-o din răutate, ci pentru că m-am simțit și eu rănit, iar primul meu instinct a fost să ignor problema.</p>
+      <button id="next-continue" class="next-continue" type="button">Continuare</button>
+      <section id="hedgehog-scene" class="hedgehog-scene" aria-live="polite">
+        <svg class="hedgehogs" viewBox="0 0 220 145" role="img" aria-label="Doi arici care se pupă">
+          <g class="hedgehog left">
+            <path d="M28 79 Q19 62 34 54 L29 43 L43 49 L42 35 L54 46 L60 32 L68 46 L79 35 L82 50 L96 46 L92 60 Q105 68 102 86 Q99 111 69 114 Q39 114 28 96Z" fill="#80533d"/>
+            <ellipse cx="66" cy="87" rx="31" ry="25" fill="#e9b98d"/>
+            <ellipse cx="47" cy="76" rx="3.2" ry="4" fill="#30251f"/>
+            <path d="M91 82 Q102 78 106 85 Q102 92 91 89Z" fill="#30251f"/>
+            <ellipse cx="51" cy="88" rx="5" ry="3" fill="#e98e91" opacity=".7"/>
+          </g>
+          <g class="hedgehog right">
+            <path d="M192 79 Q201 62 186 54 L191 43 L177 49 L178 35 L166 46 L160 32 L152 46 L141 35 L138 50 L124 46 L128 60 Q115 68 118 86 Q121 111 151 114 Q181 114 192 96Z" fill="#916449"/>
+            <ellipse cx="154" cy="87" rx="31" ry="25" fill="#f0c79e"/>
+            <ellipse cx="173" cy="76" rx="3.2" ry="4" fill="#30251f"/>
+            <path d="M129 82 Q118 78 114 85 Q118 92 129 89Z" fill="#30251f"/>
+            <ellipse cx="169" cy="88" rx="5" ry="3" fill="#e98e91" opacity=".7"/>
+          </g>
+          <path d="M108 40 C101 32 92 41 108 52 C124 41 115 32 108 40Z" fill="#e9869c"/>
+          <path d="M108 59 C103 53 97 60 108 68 C119 60 113 53 108 59Z" fill="#f3b2c0"/>
+        </svg>
+        <p class="hedgehog-message">Te iubesc și îmi pare rău că nu îți arăt asta, în schimb, îți sădesc în suflet nesiguranță și frică 🥺</p>
+        <button id="reply-start" class="reply-start" type="button">Continuare</button>
+        <form id="reply-form" class="reply-form">
+          <label for="paula-reply">Vreau să știu cum te simți</label>
+          <textarea id="paula-reply" name="reply" placeholder="Scrie aici ce simți…" required></textarea>
+          <button id="send-reply" type="submit">Trimite răspunsul</button>
+          <p id="send-status" class="send-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </section>
+  </main>
+  <script>
+    const no = document.getElementById('no');
+    const area = document.getElementById('buttons');
+    let attempts = 0;
+    function dodge() {
+      const areaRect = area.getBoundingClientRect();
+      const buttonRect = no.getBoundingClientRect();
+      const maxX = Math.max(0, areaRect.width - buttonRect.width);
+      const maxY = 105;
+      no.style.position = 'absolute';
+      no.style.left = `${Math.random() * maxX}px`;
+      no.style.top = `${Math.random() * maxY - maxY / 2}px`;
+      attempts++;
+    }
+    no.addEventListener('pointerenter', dodge);
+    no.addEventListener('pointerdown', event => { event.preventDefault(); dodge(); });
+    no.addEventListener('focus', dodge);
+    document.getElementById('continue').addEventListener('click', () => {
+      const nextMessage = document.getElementById('next-message');
+      nextMessage.classList.add('show');
+      document.getElementById('next-continue').classList.add('show');
+      document.getElementById('continue').disabled = true;
+      nextMessage.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+    document.getElementById('next-continue').addEventListener('click', () => {
+      const scene = document.getElementById('hedgehog-scene');
+      scene.classList.add('show');
+      document.getElementById('next-continue').disabled = true;
+      scene.scrollIntoView({ behavior:'smooth', block:'center' });
+    });
+    document.getElementById('reply-start').addEventListener('click', () => {
+      const form = document.getElementById('reply-form');
+      form.classList.add('show');
+      document.getElementById('reply-start').disabled = true;
+      form.scrollIntoView({ behavior:'smooth', block:'center' });
+      document.getElementById('paula-reply').focus({ preventScroll:true });
+    });
+    const replyInput = document.getElementById('paula-reply');
+    const sendReply = document.getElementById('send-reply');
+    replyInput.addEventListener('input', () => {
+      sendReply.classList.toggle('show', replyInput.value.trim().length > 0);
+    });
+    document.getElementById('reply-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const sendStatus = document.getElementById('send-status');
+      sendReply.disabled = true;
+      sendReply.textContent = 'Se trimite…';
+      sendStatus.classList.add('show');
+      sendStatus.textContent = '';
+      fetch('https://formsubmit.co/ajax/crisanalexandru2001@yahoo.com', {
+        method:'POST',
+        body:new FormData(form),
+        headers:{ 'Accept':'application/json' }
+      }).then(async response => {
+        const result = await response.json();
+        if (!response.ok || result.success === 'false' || result.success === false) throw new Error('Submit failed');
+        sendReply.textContent = 'Trimis';
+        sendStatus.textContent = 'Răspunsul a fost trimis. Mulțumesc că mi-ai spus ce simți. 💗';
+        replyInput.disabled = true;
+      }).catch(() => {
+        sendReply.disabled = false;
+        sendReply.textContent = 'Încearcă din nou';
+        sendStatus.textContent = 'Nu s-a putut trimite acum. Verifică legătura la internet și încearcă din nou.';
+      });
+    });
+    document.getElementById('yes').addEventListener('click', () => {
+      document.getElementById('response').classList.add('show');
+      document.getElementById('yes').disabled = true;
+      document.getElementById('response').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+  </script>
+</body>
+</html>
