@@ -56,11 +56,12 @@
     .send-status.show { display:block; }
     .send-success { display:none; margin:22px auto 0; animation:appear .6s ease both; }
     .send-success.show { display:block; }
-    .send-success-title { color:var(--deep)!important; font-weight:700; font-size:20px; }
+    .send-success-title { display:none; color:var(--deep)!important; font-weight:700; font-size:20px; }
+    .send-success.sent .send-success-title { display:block; }
     .snail-scene { display:flex; justify-content:center; align-items:center; gap:12px; margin-top:12px; }
-    .snail { width:100px; height:80px; animation:snail-bob 1.8s ease-in-out infinite; }
+    .snail { width:100px; height:80px; animation:snail-bob 2.4s ease-in-out infinite; }
     .snail-shell { transform-box:fill-box; transform-origin:center; animation:shell-sway 1.8s ease-in-out infinite; }
-    .snail-speech { max-width:185px; padding:12px 16px; border-radius:20px; background:#fff0f3; color:var(--deep); font-weight:700; line-height:1.4; box-shadow:0 5px 16px #a95d6b16; }
+    .snail-speech { max-width:220px; padding:12px 16px; border-radius:20px; background:#fff0f3; color:var(--deep); font-weight:700; line-height:1.4; box-shadow:0 5px 16px #a95d6b16; }
     .response .signoff { margin-top:18px; color:var(--deep); font-weight:700; }
     .sparkle { position:fixed; pointer-events:none; font-size:18px; animation:float 3s ease-in-out infinite; opacity:.65; }
     @keyframes beat { 50% { transform:scale(1.18) } }
@@ -70,7 +71,7 @@
     @keyframes cuddle-right { 0%,100% { transform:translateX(0) rotate(3deg) } 50% { transform:translateX(-4px) rotate(-2deg) } }
     @keyframes hedgehog-left { to { transform:translateX(5px) rotate(2deg) } }
     @keyframes hedgehog-right { to { transform:translateX(-5px) rotate(-2deg) } }
-    @keyframes snail-bob { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-5px) } }
+    @keyframes snail-bob { 0%,100% { transform:translateY(0) rotate(-1deg) } 50% { transform:translateY(-3px) rotate(1deg) } }
     @keyframes shell-sway { 0%,100% { transform:rotate(-2deg) } 50% { transform:rotate(2deg) } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; } }
   </style>
@@ -147,14 +148,15 @@
               <path d="M91 42 L91 30 M103 42 L106 30" stroke="#9c6b59" stroke-width="3" stroke-linecap="round"/>
               <circle cx="91" cy="28" r="4" fill="#30251f"/><circle cx="106" cy="28" r="4" fill="#30251f"/>
               <circle cx="93" cy="27" r="1.2" fill="white"/><circle cx="108" cy="27" r="1.2" fill="white"/>
-              <path d="M96 51 Q101 56 106 51" fill="none" stroke="#bd5c78" stroke-width="2" stroke-linecap="round"/>
+              <path d="M96 55 Q101 49 106 55" fill="none" stroke="#bd5c78" stroke-width="2" stroke-linecap="round"/>
+              <path d="M88 35 Q84 41 88 44 Q92 41 88 35Z" fill="#8ec9e8"/>
               <g class="snail-shell">
                 <circle cx="54" cy="54" r="27" fill="#e9869c" stroke="#bd5c78" stroke-width="3"/>
                 <path d="M57 70 C39 70 37 48 51 43 C65 38 73 55 63 62 C55 67 47 60 51 53 C54 48 61 51 59 55" fill="none" stroke="#fff0f3" stroke-width="3" stroke-linecap="round"/>
               </g>
               <path d="M33 80 Q36 74 40 80 M62 80 Q65 74 69 80" fill="none" stroke="#f3a44e" stroke-width="3" stroke-linecap="round"/>
             </svg>
-            <p class="snail-speech">Îmi pare rău, Pungule</p>
+            <p class="snail-speech">Îmi pare rău, Pungule. Sper să mă ierți.</p>
           </div>
         </section>
       </section>
@@ -203,12 +205,13 @@
     });
     document.getElementById('reply-form').addEventListener('submit', event => {
       event.preventDefault();
-      const form = event.currentTarget;
       const sendStatus = document.getElementById('send-status');
+      const sendSuccess = document.getElementById('send-success');
+      sendSuccess.classList.add('show');
       sendReply.disabled = true;
       sendReply.textContent = 'Se trimite…';
       sendStatus.classList.add('show');
-      sendStatus.textContent = '';
+      sendStatus.textContent = 'Se trimite răspunsul…';
       fetch('https://formsubmit.co/ajax/crisanalexandru2001@yahoo.com', {
         method:'POST',
         body:JSON.stringify({
@@ -224,9 +227,9 @@
         sendReply.textContent = 'Trimis';
         sendStatus.classList.remove('show');
         document.getElementById('reply-form').classList.remove('show');
-        document.getElementById('send-success').classList.add('show');
+        sendSuccess.classList.add('sent');
         replyInput.disabled = true;
-        document.getElementById('send-success').scrollIntoView({ behavior:'smooth', block:'center' });
+        sendSuccess.scrollIntoView({ behavior:'smooth', block:'center' });
       }).catch(error => {
         sendReply.disabled = false;
         sendReply.textContent = 'Încearcă din nou';
