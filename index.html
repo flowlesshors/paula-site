@@ -64,6 +64,26 @@
     .snail { width:100px; height:80px; animation:snail-bob 2.4s ease-in-out infinite; }
     .snail-shell { transform-box:fill-box; transform-origin:center; animation:shell-sway 1.8s ease-in-out infinite; }
     .snail-speech { max-width:220px; padding:12px 16px; border-radius:20px; background:#fff0f3; color:var(--deep); font-weight:700; line-height:1.4; box-shadow:0 5px 16px #a95d6b16; }
+    .chat { margin:34px auto 0; padding:22px; border:1px solid #efd5db; border-radius:24px; background:#fffafa; text-align:left; }
+    .chat h2 { margin:0 0 8px; text-align:center; font-size:24px; }
+    .chat-intro,.chat-status { color:#806c70; text-align:center; line-height:1.5; }
+    .chat-form { display:grid; gap:12px; max-width:390px; margin:18px auto; }
+    .chat-form input,.chat-compose textarea { width:100%; padding:12px 14px; border:1px solid #efd5db; border-radius:14px; color:var(--ink); background:white; font:16px inherit; font-family:inherit; }
+    .chat-form input:focus,.chat-compose textarea:focus { outline:2px solid #e9869c55; border-color:var(--pink); }
+    .chat-auth-actions,.chat-compose-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; }
+    .chat button { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 6px 16px #d96f8c35; }
+    .chat button.secondary { color:var(--deep); background:#fff0f3; box-shadow:none; }
+    .chat-account { display:none; text-align:center; color:#806c70; }
+    .chat-account.show { display:block; }
+    .chat-box { display:none; max-height:300px; overflow:auto; margin:18px 0; padding:12px; border-radius:16px; background:#fff; }
+    .chat-box.show { display:block; }
+    .chat-message { width:fit-content; max-width:90%; margin:8px 0; padding:10px 13px; border-radius:16px; background:#f8e8ec; overflow-wrap:anywhere; }
+    .chat-message.mine { margin-left:auto; background:#f5cbd5; }
+    .chat-message small { display:block; margin-top:4px; color:#806c70; font-size:11px; }
+    .chat-compose { display:none; gap:10px; }
+    .chat-compose.show { display:grid; }
+    .chat-compose textarea { min-height:76px; resize:vertical; }
+    .chat-error { color:#a3314e!important; }
     .response .signoff { margin-top:18px; color:var(--deep); font-weight:700; }
     .sparkle { position:fixed; pointer-events:none; font-size:18px; animation:float 3s ease-in-out infinite; opacity:.65; }
     @keyframes beat { 50% { transform:scale(1.18) } }
@@ -166,6 +186,26 @@
         </section>
       </section>
     </section>
+    <section class="chat" aria-labelledby="chat-title">
+      <h2 id="chat-title">Un loc doar pentru noi 💌</h2>
+      <p class="chat-intro">Conectează-te sau creează-ți cont ca să vorbim aici.</p>
+      <form id="chat-auth-form" class="chat-form">
+        <input id="chat-name" type="text" autocomplete="name" placeholder="Numele tău" maxlength="40" required>
+        <input id="chat-email" type="email" autocomplete="email" placeholder="Adresa de email" required>
+        <input id="chat-password" type="password" autocomplete="current-password" placeholder="Parola (cel puțin 6 caractere)" minlength="6" required>
+        <div class="chat-auth-actions">
+          <button type="submit" id="chat-login">Conectare</button>
+          <button type="button" class="secondary" id="chat-signup">Creează cont</button>
+        </div>
+      </form>
+      <p id="chat-account" class="chat-account">Conectat ca <span id="chat-user-email"></span> <button type="button" class="secondary" id="chat-logout">Deconectare</button></p>
+      <p id="chat-status" class="chat-status" role="status" aria-live="polite">Conversația se activează după ce conturile sunt autorizate în baza de date.</p>
+      <div id="chat-box" class="chat-box" aria-live="polite"></div>
+      <form id="chat-compose" class="chat-compose">
+        <textarea id="chat-text" maxlength="1000" placeholder="Scrie un mesaj…" required></textarea>
+        <div class="chat-compose-actions"><button type="submit">Trimite mesajul</button></div>
+      </form>
+    </section>
   </main>
   <script>
     const no = document.getElementById('no');
@@ -256,6 +296,123 @@
       document.getElementById('response').classList.add('show');
       document.getElementById('yes').disabled = true;
       document.getElementById('response').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+  </script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js';
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
+    import { getDatabase, ref, push, onChildAdded, query, limitToLast, serverTimestamp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyBZOhC_x_H8vpWDX3xg08_URUnnZpOBEw8',
+      authDomain: 'paulaserver-2e07d.firebaseapp.com',
+      databaseURL: 'https://paulaserver-2e07d-default-rtdb.europe-west1.firebasedatabase.app',
+      projectId: 'paulaserver-2e07d',
+      storageBucket: 'paulaserver-2e07d.firebasestorage.app',
+      messagingSenderId: '417130430571',
+      appId: '1:417130430571:web:b5456c8cb8e5707136f12e'
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const authForm = document.getElementById('chat-auth-form');
+    const status = document.getElementById('chat-status');
+    const account = document.getElementById('chat-account');
+    const chatBox = document.getElementById('chat-box');
+    const compose = document.getElementById('chat-compose');
+    let stopMessages = null;
+    const showStatus = (message, isError = false) => {
+      status.textContent = message;
+      status.classList.toggle('chat-error', isError);
+    };
+    const explainError = error => {
+      const messages = {
+        'auth/email-already-in-use':'Există deja un cont cu această adresă. Încearcă să te conectezi.',
+        'auth/invalid-credential':'Adresa sau parola nu este corectă.',
+        'auth/weak-password':'Alege o parolă de cel puțin 6 caractere.',
+        'auth/invalid-email':'Verifică adresa de email.'
+      };
+      return messages[error.code] || 'Nu s-a putut realiza acțiunea. Verifică datele și conexiunea.';
+    };
+    document.getElementById('chat-login').addEventListener('click', () => { authForm.dataset.action = 'login'; });
+    document.getElementById('chat-signup').addEventListener('click', async () => {
+      authForm.dataset.action = 'signup';
+      const name = document.getElementById('chat-name').value.trim();
+      const email = document.getElementById('chat-email').value.trim();
+      const password = document.getElementById('chat-password').value;
+      if (!name || !email || password.length < 6) {
+        showStatus('Completează numele, adresa de email și o parolă de cel puțin 6 caractere.', true);
+        return;
+      }
+      try {
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(credential.user, { displayName:name });
+      } catch (error) { showStatus(explainError(error), true); }
+    });
+    authForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (authForm.dataset.action === 'signup') return;
+      try {
+        await signInWithEmailAndPassword(auth,
+          document.getElementById('chat-email').value.trim(),
+          document.getElementById('chat-password').value);
+      } catch (error) { showStatus(explainError(error), true); }
+    });
+    document.getElementById('chat-logout').addEventListener('click', () => signOut(auth));
+    onAuthStateChanged(auth, user => {
+      authForm.style.display = user ? 'none' : 'grid';
+      account.classList.toggle('show', Boolean(user));
+      chatBox.classList.toggle('show', Boolean(user));
+      compose.classList.toggle('show', Boolean(user));
+      if (stopMessages) { stopMessages(); stopMessages = null; }
+      chatBox.replaceChildren();
+      if (!user) {
+        showStatus('Conectează-te sau creează-ți contul. Baza de date rămâne privată până când conturile voastre sunt autorizate.');
+        return;
+      }
+      document.getElementById('chat-user-email').textContent = user.email || '';
+      showStatus('Verific accesul la conversație…');
+      const messagesRef = query(ref(db, 'privateChat/messages'), limitToLast(100));
+      stopMessages = onChildAdded(messagesRef, snapshot => {
+        const message = snapshot.val();
+        if (!message || typeof message.text !== 'string') return;
+        const bubble = document.createElement('div');
+        bubble.className = `chat-message${message.uid === user.uid ? ' mine' : ''}`;
+        const body = document.createElement('span');
+        body.textContent = message.text;
+        const meta = document.createElement('small');
+        meta.textContent = message.name || message.email || 'Mesaj';
+        bubble.append(body, meta);
+        chatBox.append(bubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        showStatus('Conectat la conversație. Mesajele se sincronizează în timp real.');
+      }, error => {
+        showStatus(error.code === 'PERMISSION_DENIED'
+          ? 'Contul a fost creat, însă încă nu este autorizat în regulile bazei de date. Lasă regulile blocate și trimite-mi o captură din Authentication → Users ca să continuăm în siguranță.'
+          : 'Nu s-a putut încărca conversația. Verifică setările Firebase.', true);
+      });
+    });
+    compose.addEventListener('submit', async event => {
+      event.preventDefault();
+      const user = auth.currentUser;
+      const field = document.getElementById('chat-text');
+      const text = field.value.trim();
+      if (!user || !text) return;
+      try {
+        await push(ref(db, 'privateChat/messages'), {
+          uid:user.uid,
+          name:user.displayName || user.email || 'Utilizator',
+          email:user.email || '',
+          text,
+          createdAt:serverTimestamp()
+        });
+        field.value = '';
+        showStatus('Mesaj trimis.');
+      } catch (error) {
+        showStatus(error.code === 'PERMISSION_DENIED'
+          ? 'Baza de date este încă blocată pentru acest cont. Nu schimba regulile; autorizăm doar conturile voastre după ce am identificat ID-urile.'
+          : 'Mesajul nu a putut fi trimis. Încearcă din nou.', true);
+      }
     });
   </script>
 </body>
