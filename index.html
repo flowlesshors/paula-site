@@ -332,7 +332,7 @@
         'auth/weak-password':'Alege o parolă de cel puțin 6 caractere.',
         'auth/invalid-email':'Verifică adresa de email.'
       };
-      return messages[error.code] || 'Nu s-a putut realiza acțiunea. Verifică datele și conexiunea.';
+      return messages[error.code] || `Nu s-a putut realiza acțiunea (${error.code || 'eroare necunoscută'}). Verifică datele și conexiunea.`;
     };
     document.getElementById('chat-login').addEventListener('click', () => { authForm.dataset.action = 'login'; });
     document.getElementById('chat-signup').addEventListener('click', async () => {
