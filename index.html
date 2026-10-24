@@ -44,7 +44,7 @@
     .hedgehog.left { animation: hedgehog-left 1.7s ease-in-out infinite alternate; transform-origin:70px 75px; }
     .hedgehog.right { animation: hedgehog-right 1.7s ease-in-out infinite alternate; transform-origin:130px 75px; }
     .hedgehog-message { max-width:430px; margin:0 auto!important; color:var(--deep)!important; font-weight:700; }
-    .reply-start { margin-top:20px; }
+    .reply-start { margin-top:20px; color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
     .reply-form { display:none; max-width:430px; margin:24px auto 0; text-align:left; animation:appear .55s ease both; }
     .reply-form.show { display:block; }
     .reply-form label { display:block; margin-bottom:10px; text-align:center; font-size:20px; font-weight:700; }
@@ -54,6 +54,13 @@
     #send-reply.show { display:block; }
     .send-status { display:none; margin-top:12px!important; text-align:center; font-size:14px!important; }
     .send-status.show { display:block; }
+    .send-success { display:none; margin:22px auto 0; animation:appear .6s ease both; }
+    .send-success.show { display:block; }
+    .send-success-title { color:var(--deep)!important; font-weight:700; font-size:20px; }
+    .snail-scene { display:flex; justify-content:center; align-items:center; gap:12px; margin-top:12px; }
+    .snail { width:100px; height:80px; animation:snail-bob 1.8s ease-in-out infinite; }
+    .snail-shell { transform-box:fill-box; transform-origin:center; animation:shell-sway 1.8s ease-in-out infinite; }
+    .snail-speech { max-width:185px; padding:12px 16px; border-radius:20px; background:#fff0f3; color:var(--deep); font-weight:700; line-height:1.4; box-shadow:0 5px 16px #a95d6b16; }
     .response .signoff { margin-top:18px; color:var(--deep); font-weight:700; }
     .sparkle { position:fixed; pointer-events:none; font-size:18px; animation:float 3s ease-in-out infinite; opacity:.65; }
     @keyframes beat { 50% { transform:scale(1.18) } }
@@ -63,6 +70,8 @@
     @keyframes cuddle-right { 0%,100% { transform:translateX(0) rotate(3deg) } 50% { transform:translateX(-4px) rotate(-2deg) } }
     @keyframes hedgehog-left { to { transform:translateX(5px) rotate(2deg) } }
     @keyframes hedgehog-right { to { transform:translateX(-5px) rotate(-2deg) } }
+    @keyframes snail-bob { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-5px) } }
+    @keyframes shell-sway { 0%,100% { transform:rotate(-2deg) } 50% { transform:rotate(2deg) } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; } }
   </style>
 </head>
@@ -98,7 +107,7 @@
         </g>
         <path d="M76 29 C70 22 61 31 76 41 C91 31 82 22 76 29Z" fill="#e9869c"/>
       </svg>
-      <p>Știu că de fapt încă ești supărată pe mine pentru ce am făcut. Îmi pare rău. Țin mult la tine și vreau să te ascult și să înțeleg cum te simți, fără să te grăbesc.</p>
+      <p>Știu că de fapt încă ești supărată pe mine pentru ce am făcut. Îmi pare rău. Țin mult la tine și vreau să te ascult și să înțeleg cum te simți.</p>
       <div class="continue-wrap"><button id="continue" type="button">Click aici pentru continuare</button></div>
       <p id="next-message" class="next-message" aria-live="polite">Îmi pare rău pentru cum am reacționat și că am dat dovadă de dezinteres, în loc să fiu curios despre ce îți cauzează ție neplăcere. Nu am făcut-o din răutate, ci pentru că m-am simțit și eu rănit, iar primul meu instinct a fost să ignor problema.</p>
       <button id="next-continue" class="next-continue" type="button">Continuare</button>
@@ -124,11 +133,30 @@
         <p class="hedgehog-message">Te iubesc și îmi pare rău că nu îți arăt asta, în schimb, îți sădesc în suflet nesiguranță și frică 🥺</p>
         <button id="reply-start" class="reply-start" type="button">Continuare</button>
         <form id="reply-form" class="reply-form">
-          <label for="paula-reply">Vreau să știu cum te simți</label>
+          <label for="paula-reply">Spune-mi ce simți</label>
           <textarea id="paula-reply" name="reply" placeholder="Scrie aici ce simți…" required></textarea>
           <button id="send-reply" type="submit">Trimite răspunsul</button>
           <p id="send-status" class="send-status" role="status" aria-live="polite"></p>
         </form>
+        <section id="send-success" class="send-success" aria-live="polite">
+          <p class="send-success-title">Trimitere reușită!</p>
+          <div class="snail-scene">
+            <svg class="snail" viewBox="0 0 120 90" role="img" aria-label="Un melc animat">
+              <path d="M15 70 Q23 59 36 61 L81 61 Q96 61 103 70 Q108 78 97 81 L23 81 Q11 80 15 70Z" fill="#9c6b59"/>
+              <path d="M73 63 Q77 43 91 39 Q102 36 106 47 L108 63Z" fill="#e9b98d"/>
+              <path d="M91 42 L91 30 M103 42 L106 30" stroke="#9c6b59" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="91" cy="28" r="4" fill="#30251f"/><circle cx="106" cy="28" r="4" fill="#30251f"/>
+              <circle cx="93" cy="27" r="1.2" fill="white"/><circle cx="108" cy="27" r="1.2" fill="white"/>
+              <path d="M96 51 Q101 56 106 51" fill="none" stroke="#bd5c78" stroke-width="2" stroke-linecap="round"/>
+              <g class="snail-shell">
+                <circle cx="54" cy="54" r="27" fill="#e9869c" stroke="#bd5c78" stroke-width="3"/>
+                <path d="M57 70 C39 70 37 48 51 43 C65 38 73 55 63 62 C55 67 47 60 51 53 C54 48 61 51 59 55" fill="none" stroke="#fff0f3" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <path d="M33 80 Q36 74 40 80 M62 80 Q65 74 69 80" fill="none" stroke="#f3a44e" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <p class="snail-speech">Îmi pare rău, Pungule</p>
+          </div>
+        </section>
       </section>
     </section>
   </main>
@@ -165,7 +193,6 @@
     document.getElementById('reply-start').addEventListener('click', () => {
       const form = document.getElementById('reply-form');
       form.classList.add('show');
-      document.getElementById('reply-start').disabled = true;
       form.scrollIntoView({ behavior:'smooth', block:'center' });
       document.getElementById('paula-reply').focus({ preventScroll:true });
     });
@@ -195,8 +222,11 @@
           throw new Error(result.message || `Eroare HTTP ${response.status}`);
         }
         sendReply.textContent = 'Trimis';
-        sendStatus.textContent = 'Răspunsul a fost trimis. Mulțumesc că mi-ai spus ce simți. 💗';
+        sendStatus.classList.remove('show');
+        document.getElementById('reply-form').classList.remove('show');
+        document.getElementById('send-success').classList.add('show');
         replyInput.disabled = true;
+        document.getElementById('send-success').scrollIntoView({ behavior:'smooth', block:'center' });
       }).catch(error => {
         sendReply.disabled = false;
         sendReply.textContent = 'Încearcă din nou';
