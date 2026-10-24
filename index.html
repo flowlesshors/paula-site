@@ -16,14 +16,14 @@
     h1 { margin:14px 0 10px; font-size:clamp(30px,8vw,46px); letter-spacing:-1.7px; line-height:1.12; }
     .subtitle { max-width:370px; margin:0 auto; color:#806c70; font-size:16px; line-height:1.65; }
     .question { margin:27px 0 22px; font-size:20px; font-weight:700; }
-    .buttons { position:relative; display:flex; align-items:center; justify-content:center; gap:15px; min-height:58px; }
+    .buttons { position:relative; display:flex; align-items:center; justify-content:center; gap:15px; min-height:126px; }
     .continue-wrap { margin-top:18px; }
     #continue { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
     #continue:hover { transform:translateY(-2px) scale(1.03); box-shadow:0 12px 24px #d96f8c55; }
     button { border:0; border-radius:999px; padding:14px 28px; font:700 16px inherit; font-family:inherit; font-size:16px; cursor:pointer; transition:transform .2s,box-shadow .2s,background .2s; }
     #yes { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
     #yes:hover { transform:translateY(-2px) scale(1.04); box-shadow:0 12px 24px #d96f8c55; }
-    #no { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; position:relative; touch-action:manipulation; }
+    #no { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; position:relative; touch-action:manipulation; transform-origin:top left; }
     .hint { margin:15px 0 0; min-height:22px; color:#a18b90; font-size:13px; }
     .response { display:none; margin:28px auto 0; max-width:390px; animation:appear .55s ease both; }
     .response.show { display:block; }
@@ -209,21 +209,63 @@
   </main>
   <script>
     const no = document.getElementById('no');
+    const yes = document.getElementById('yes');
     const area = document.getElementById('buttons');
-    let attempts = 0;
-    function dodge() {
+    let touchAttempts = 0;
+    let noScale = 1;
+    function placeNo({ pointerX = null, pointerY = null, scale = noScale } = {}) {
       const areaRect = area.getBoundingClientRect();
-      const buttonRect = no.getBoundingClientRect();
-      const maxX = Math.max(0, areaRect.width - buttonRect.width);
-      const maxY = 105;
+      const yesRect = yes.getBoundingClientRect();
+      const width = no.offsetWidth * scale;
+      const height = no.offsetHeight * scale;
+      const maxX = Math.max(0, area.clientWidth - width);
+      const maxY = Math.max(0, area.clientHeight - height);
+      const yesBox = {
+        left:yesRect.left - areaRect.left - 12,
+        right:yesRect.right - areaRect.left + 12,
+        top:yesRect.top - areaRect.top - 12,
+        bottom:yesRect.bottom - areaRect.top + 12
+      };
+      const safe = (x, y) => {
+        const overlapsYes = x < yesBox.right && x + width > yesBox.left && y < yesBox.bottom && y + height > yesBox.top;
+        const overlapsPointer = pointerX !== null && pointerY !== null &&
+          pointerX >= areaRect.left + x - 24 && pointerX <= areaRect.left + x + width + 24 &&
+          pointerY >= areaRect.top + y - 24 && pointerY <= areaRect.top + y + height + 24;
+        return !overlapsYes && !overlapsPointer;
+      };
+      const candidates = [];
+      for (let i = 0; i < 80; i++) candidates.push([Math.random() * maxX, Math.random() * maxY]);
+      candidates.push([0, 0], [maxX, 0], [0, maxY], [maxX, maxY], [0, maxY / 2], [maxX, maxY / 2]);
+      const spot = candidates.find(([x, y]) => safe(x, y));
+      if (!spot) return false;
       no.style.position = 'absolute';
-      no.style.left = `${Math.random() * maxX}px`;
-      no.style.top = `${Math.random() * maxY - maxY / 2}px`;
-      attempts++;
+      no.style.left = `${spot[0]}px`;
+      no.style.top = `${spot[1]}px`;
+      no.style.transform = `scale(${scale})`;
+      return true;
     }
-    no.addEventListener('pointerenter', dodge);
-    no.addEventListener('pointerdown', event => { event.preventDefault(); dodge(); });
-    no.addEventListener('focus', dodge);
+    function dodgeFromPointer(event) {
+      noScale = 1;
+      placeNo({ pointerX:event.clientX, pointerY:event.clientY, scale:noScale });
+    }
+    no.addEventListener('pointerenter', event => {
+      if (event.pointerType !== 'touch') dodgeFromPointer(event);
+    });
+    no.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      if (event.pointerType === 'touch') {
+        touchAttempts++;
+        noScale = Math.max(0.12, 1 - touchAttempts * 0.19);
+        if (touchAttempts >= 6) {
+          no.style.display = 'none';
+          return;
+        }
+        if (!placeNo({ scale:noScale })) placeNo({ scale:Math.max(0.12, noScale - 0.1) });
+      } else {
+        dodgeFromPointer(event);
+      }
+    });
+    no.addEventListener('click', event => event.preventDefault());
     document.getElementById('continue').addEventListener('click', () => {
       const nextMessage = document.getElementById('next-message');
       nextMessage.classList.add('show');
