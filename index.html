@@ -79,7 +79,9 @@
     .chat-box.show { display:block; }
     .chat-message { width:fit-content; max-width:90%; margin:8px 0; padding:10px 13px; border-radius:16px; background:#f8e8ec; overflow-wrap:anywhere; }
     .chat-message.mine { margin-left:auto; background:#f5cbd5; }
-    .chat-message small { display:block; margin-top:4px; color:#806c70; font-size:11px; }
+    .chat-message-meta { display:flex; align-items:center; justify-content:flex-end; gap:7px; margin-top:5px; color:#806c70; font-size:11px; }
+    .chat-seen { color:#8b929b; font-size:14px; font-weight:700; letter-spacing:-3px; padding-right:3px; }
+    .chat-seen.seen { color:#398bd8; }
     .chat-compose { display:none; gap:10px; }
     .chat-compose.show { display:grid; }
     .chat-compose textarea { min-height:76px; resize:vertical; }
@@ -190,8 +192,8 @@
       <h2 id="chat-title">Un loc doar pentru noi 💌</h2>
       <p class="chat-intro">Conectează-te sau creează-ți cont ca să vorbim aici.</p>
       <form id="chat-auth-form" class="chat-form">
-        <input id="chat-name" type="text" autocomplete="name" placeholder="Numele tău" maxlength="40" required>
-        <input id="chat-email" type="email" autocomplete="email" placeholder="Adresa de email" required>
+        <input id="chat-name" type="text" autocomplete="username" placeholder="Username (sau email la prima conectare)" maxlength="40" required>
+        <input id="chat-email" type="email" autocomplete="email" placeholder="Email (la cont nou sau prima conectare pe acest dispozitiv)" >
         <input id="chat-password" type="password" autocomplete="current-password" placeholder="Parola (cel puțin 6 caractere)" minlength="6" required>
         <div class="chat-auth-actions">
           <button type="submit" id="chat-login">Conectare</button>
@@ -342,8 +344,8 @@
   </script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js';
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
-    import { getDatabase, ref, push, onChildAdded, query, limitToLast, serverTimestamp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js';
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
+    import { getDatabase, ref, push, onChildAdded, onValue, set, query, limitToLast, serverTimestamp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js';
 
     const firebaseConfig = {
       apiKey: 'AIzaSyBZoHC_x_H8vpWDX3xg08_URUnnZpOBEw8',
@@ -356,6 +358,7 @@
     };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const persistenceReady = setPersistence(auth, browserLocalPersistence);
     const db = getDatabase(app);
     const authForm = document.getElementById('chat-auth-form');
     const status = document.getElementById('chat-status');
@@ -363,6 +366,36 @@
     const chatBox = document.getElementById('chat-box');
     const compose = document.getElementById('chat-compose');
     let stopMessages = null;
+    let stopReceipts = [];
+    const pendingSeen = new Set();
+    let chatIsVisible = false;
+    const usernameMapKey = 'paula-chat-usernames-v1';
+    function normalizeUsername(value) { return value.trim().toLocaleLowerCase('ro-RO'); }
+    function readUsernameMap() {
+      try { return JSON.parse(localStorage.getItem(usernameMapKey) || '{}'); }
+      catch { return {}; }
+    }
+    function rememberUsername(username, email) {
+      if (!username || !email || username.includes('@')) return;
+      const map = readUsernameMap();
+      map[normalizeUsername(username)] = email;
+      localStorage.setItem(usernameMapKey, JSON.stringify(map));
+    }
+    const chatObserver = new IntersectionObserver(entries => {
+      chatIsVisible = Boolean(entries[0]?.isIntersecting);
+      if (chatIsVisible && auth.currentUser) {
+        for (const messageId of pendingSeen) markMessageSeen(messageId, auth.currentUser.uid);
+        pendingSeen.clear();
+      }
+    }, { threshold:0.2 });
+    chatObserver.observe(document.querySelector('.chat'));
+    function markMessageSeen(messageId, uid) {
+      return set(ref(db, `privateChat/receipts/${messageId}/${uid}`), true);
+    }
+    function formatMessageTime(timestamp) {
+      if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) return '…';
+      return new Intl.DateTimeFormat('ro-RO', { hour:'2-digit', minute:'2-digit' }).format(new Date(timestamp));
+    }
     const showStatus = (message, isError = false) => {
       status.textContent = message;
       status.classList.toggle('chat-error', isError);
@@ -387,17 +420,26 @@
         return;
       }
       try {
+        await persistenceReady;
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(credential.user, { displayName:name });
+        rememberUsername(name, credential.user.email);
       } catch (error) { showStatus(explainError(error), true); }
     });
     authForm.addEventListener('submit', async event => {
       event.preventDefault();
       if (authForm.dataset.action === 'signup') return;
       try {
-        await signInWithEmailAndPassword(auth,
-          document.getElementById('chat-email').value.trim(),
-          document.getElementById('chat-password').value);
+        await persistenceReady;
+        const identifier = document.getElementById('chat-name').value.trim();
+        const suppliedEmail = document.getElementById('chat-email').value.trim();
+        const email = identifier.includes('@') ? identifier : (suppliedEmail || readUsernameMap()[normalizeUsername(identifier)]);
+        if (!email) {
+          showStatus('Pentru prima conectare pe acest dispozitiv, introdu emailul o dată în câmpul de dedesubt. După aceea vei putea folosi username-ul și parola.', true);
+          return;
+        }
+        const credential = await signInWithEmailAndPassword(auth, email, document.getElementById('chat-password').value);
+        rememberUsername(identifier.includes('@') ? credential.user.displayName : identifier, credential.user.email);
       } catch (error) { showStatus(explainError(error), true); }
     });
     document.getElementById('chat-logout').addEventListener('click', () => signOut(auth));
@@ -407,12 +449,15 @@
       chatBox.classList.toggle('show', Boolean(user));
       compose.classList.toggle('show', Boolean(user));
       if (stopMessages) { stopMessages(); stopMessages = null; }
+      stopReceipts.forEach(stop => stop());
+      stopReceipts = [];
       chatBox.replaceChildren();
       if (!user) {
         showStatus('Conectează-te sau creează-ți contul. Baza de date rămâne privată până când conturile voastre sunt autorizate.');
         return;
       }
       document.getElementById('chat-user-email').textContent = user.email || '';
+      rememberUsername(user.displayName, user.email);
       showStatus('Verific accesul la conversație…');
       const messagesRef = query(ref(db, 'privateChat/messages'), limitToLast(100));
       stopMessages = onChildAdded(messagesRef, snapshot => {
@@ -422,11 +467,35 @@
         bubble.className = `chat-message${message.uid === user.uid ? ' mine' : ''}`;
         const body = document.createElement('span');
         body.textContent = message.text;
-        const meta = document.createElement('small');
-        meta.textContent = message.name || message.email || 'Mesaj';
+        const meta = document.createElement('div');
+        meta.className = 'chat-message-meta';
+        const sender = document.createElement('span');
+        sender.textContent = message.name || message.email || 'Mesaj';
+        const time = document.createElement('time');
+        time.textContent = formatMessageTime(message.createdAt);
+        meta.append(sender, time);
+        if (message.uid === user.uid) {
+          const ticks = document.createElement('span');
+          ticks.className = 'chat-seen';
+          ticks.textContent = '✓✓';
+          ticks.setAttribute('aria-label', 'Trimis');
+          meta.append(ticks);
+          const stopReceipt = onValue(ref(db, `privateChat/receipts/${snapshot.key}`), receiptSnapshot => {
+            const readers = receiptSnapshot.val() || {};
+            const seenByOther = Object.entries(readers).some(([readerUid, seen]) => readerUid !== user.uid && seen === true);
+            ticks.classList.toggle('seen', seenByOther);
+            ticks.setAttribute('aria-label', seenByOther ? 'Văzut' : 'Trimis');
+            ticks.title = seenByOther ? 'Văzut' : 'Trimis';
+          }, () => {});
+          stopReceipts.push(stopReceipt);
+        }
         bubble.append(body, meta);
         chatBox.append(bubble);
         chatBox.scrollTop = chatBox.scrollHeight;
+        if (message.uid !== user.uid) {
+          if (chatIsVisible) markMessageSeen(snapshot.key, user.uid).catch(() => {});
+          else pendingSeen.add(snapshot.key);
+        }
         showStatus('Conectat la conversație. Mesajele se sincronizează în timp real.');
       }, error => {
         showStatus(error.code === 'PERMISSION_DENIED'
@@ -441,6 +510,7 @@
       const text = field.value.trim();
       if (!user || !text) return;
       try {
+        await persistenceReady;
         await push(ref(db, 'privateChat/messages'), {
           uid:user.uid,
           name:user.displayName || user.email || 'Utilizator',
