@@ -53,7 +53,6 @@
     .send-actions { display:none; justify-content:center; flex-wrap:wrap; gap:12px; margin-top:14px; }
     .send-actions.show { display:flex; }
     #send-reply { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
-    #send-whatsapp { color:white; background:linear-gradient(135deg,#42c777,#1ca657); box-shadow:0 8px 20px #1ca65735; }
     .send-status { display:none; margin-top:12px!important; text-align:center; font-size:14px!important; }
     .send-status.show { display:block; }
     .send-success { display:none; margin:22px auto 0; animation:appear .6s ease both; }
@@ -64,6 +63,8 @@
     .snail { width:100px; height:80px; animation:snail-bob 2.4s ease-in-out infinite; }
     .snail-shell { transform-box:fill-box; transform-origin:center; animation:shell-sway 1.8s ease-in-out infinite; }
     .snail-speech { max-width:220px; padding:12px 16px; border-radius:20px; background:#fff0f3; color:var(--deep); font-weight:700; line-height:1.4; box-shadow:0 5px 16px #a95d6b16; }
+    .chat[hidden] { display:none; }
+    .chat-notice { padding:12px 16px; border-radius:14px; background:#fff0f3; color:var(--deep); font-weight:700; }
     .chat { margin:34px auto 0; padding:22px; border:1px solid #efd5db; border-radius:24px; background:#fffafa; text-align:left; }
     .chat h2 { margin:0 0 8px; text-align:center; font-size:24px; }
     .chat-intro,.chat-status { color:#806c70; text-align:center; line-height:1.5; }
@@ -163,7 +164,6 @@
           <textarea id="paula-reply" name="reply" placeholder="Scrie aici ce simți…" required></textarea>
           <div id="send-actions" class="send-actions">
             <button id="send-reply" type="submit">Trimite prin email</button>
-            <button id="send-whatsapp" type="button">Trimite pe WhatsApp</button>
           </div>
           <p id="send-status" class="send-status" role="status" aria-live="polite"></p>
         </form>
@@ -189,7 +189,7 @@
         </section>
       </section>
     </section>
-    <section class="chat" aria-labelledby="chat-title">
+    <section class="chat" id="chat" aria-labelledby="chat-title" hidden>
       <h2 id="chat-title">Un loc doar pentru noi 💌</h2>
       <p class="chat-intro">Conectează-te sau creează-ți cont ca să vorbim aici.</p>
       <form id="chat-auth-form" class="chat-form">
@@ -203,6 +203,9 @@
       </form>
       <p id="chat-account" class="chat-account">Conectat ca <span id="chat-user-email"></span> <button type="button" class="secondary" id="chat-logout">Deconectare</button></p>
       <p id="chat-status" class="chat-status" role="status" aria-live="polite">Conversația se activează după ce conturile sunt autorizate în baza de date.</p>
+      <button id="chat-notifications" type="button">Activează notificările</button>
+      <p id="chat-notification-status" class="chat-status" role="status"></p>
+      <p id="chat-notice" class="chat-notice" role="status" aria-live="polite" hidden></p>
       <div id="chat-box" class="chat-box" aria-live="polite"></div>
       <form id="chat-compose" class="chat-compose">
         <textarea id="chat-text" maxlength="1000" placeholder="Scrie un mesaj…" required></textarea>
@@ -294,16 +297,6 @@
     replyInput.addEventListener('input', () => {
       sendActions.classList.toggle('show', replyInput.value.trim().length > 0);
     });
-    document.getElementById('send-whatsapp').addEventListener('click', () => {
-      const whatsappNumber = '40775324210';
-      const message = encodeURIComponent(replyInput.value.trim());
-      const sendStatus = document.getElementById('send-status');
-      document.getElementById('send-success').classList.add('show');
-      sendStatus.classList.add('show');
-      sendStatus.textContent = 'Se deschide WhatsApp. Apasă „Trimite” în conversație ca să trimiți răspunsul.';
-      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank', 'noopener');
-      document.getElementById('send-success').scrollIntoView({ behavior:'smooth', block:'center' });
-    });
     document.getElementById('reply-form').addEventListener('submit', event => {
       event.preventDefault();
       const sendStatus = document.getElementById('send-status');
@@ -343,7 +336,11 @@
       document.getElementById('response').scrollIntoView({ behavior:'smooth', block:'nearest' });
     }
     yes.addEventListener('click', showResponse);
-    document.getElementById('maybe').addEventListener('click', showResponse);
+    document.getElementById('maybe').addEventListener('click', () => {
+      const chat = document.getElementById('chat');
+      chat.hidden = false;
+      chat.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
   </script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js';
@@ -369,9 +366,73 @@
     const chatBox = document.getElementById('chat-box');
     const compose = document.getElementById('chat-compose');
     let stopMessages = null;
+    let stopInitialMessages = null;
     let stopReceipts = [];
     const pendingSeen = new Set();
     let chatIsVisible = false;
+    const notificationButton = document.getElementById('chat-notifications');
+    const notificationStatus = document.getElementById('chat-notification-status');
+    const chatNotice = document.getElementById('chat-notice');
+    const originalTitle = document.title;
+    let unreadCount = 0;
+    function clearUnread() {
+      unreadCount = 0;
+      document.title = originalTitle;
+      chatNotice.hidden = true;
+    }
+    function chatIsActive() {
+      return chatIsVisible && document.visibilityState === 'visible' && document.hasFocus();
+    }
+    function updateNotificationStatus() {
+      const supported = 'Notification' in window && window.isSecureContext;
+      notificationButton.hidden = !supported || Notification.permission !== 'default';
+      notificationStatus.textContent = !supported
+        ? 'Mesajele noi sunt semnalate aici cât timp pagina este deschisă.'
+        : Notification.permission === 'granted'
+          ? 'Notificările sunt active cât timp pagina este deschisă.'
+          : Notification.permission === 'denied'
+            ? 'Notificările sunt blocate în browser. Le poți permite din setările site-ului; alertele din pagină rămân active.'
+            : 'Poți activa notificările browserului pentru mesaje noi. Pagina trebuie să rămână deschisă.';
+    }
+    notificationButton.addEventListener('click', async () => {
+      try {
+        await Notification.requestPermission();
+        updateNotificationStatus();
+      } catch {
+        notificationStatus.textContent = 'Browserul nu a putut activa notificările. Alertele din pagină rămân active.';
+      }
+    });
+    updateNotificationStatus();
+    function notifyIncomingMessage() {
+      if (chatIsActive()) return;
+      unreadCount++;
+      document.title = `(${unreadCount}) Mesaje noi — ${originalTitle}`;
+      chatNotice.textContent = unreadCount === 1 ? 'Ai primit un mesaj nou 💌' : `Ai primit ${unreadCount} mesaje noi 💌`;
+      chatNotice.hidden = false;
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const notification = new Notification('Mesaj nou 💌', {
+            body:'Ai primit un mesaj în conversația voastră.', tag:'paula-chat'
+          });
+          notification.onclick = () => {
+            window.focus();
+            const chat = document.getElementById('chat');
+            if (!chat.hidden) chat.scrollIntoView({ behavior:'smooth', block:'start' });
+            notification.close();
+          };
+        } catch { /* Alertele din pagină funcționează și fără notificări native. */ }
+      }
+    }
+    function readVisibleMessages() {
+      if (!chatIsActive()) return;
+      clearUnread();
+      if (auth.currentUser) {
+        for (const messageId of pendingSeen) markMessageSeen(messageId, auth.currentUser.uid).catch(() => {});
+        pendingSeen.clear();
+      }
+    }
+    document.addEventListener('visibilitychange', readVisibleMessages);
+    window.addEventListener('focus', readVisibleMessages);
     const usernameMapKey = 'paula-chat-usernames-v1';
     function normalizeUsername(value) { return value.trim().toLocaleLowerCase('ro-RO'); }
     function readUsernameMap() {
@@ -386,10 +447,7 @@
     }
     const chatObserver = new IntersectionObserver(entries => {
       chatIsVisible = Boolean(entries[0]?.isIntersecting);
-      if (chatIsVisible && auth.currentUser) {
-        for (const messageId of pendingSeen) markMessageSeen(messageId, auth.currentUser.uid);
-        pendingSeen.clear();
-      }
+      readVisibleMessages();
     }, { threshold:0.2 });
     chatObserver.observe(document.querySelector('.chat'));
     function markMessageSeen(messageId, uid) {
@@ -452,6 +510,9 @@
       chatBox.classList.toggle('show', Boolean(user));
       compose.classList.toggle('show', Boolean(user));
       if (stopMessages) { stopMessages(); stopMessages = null; }
+      if (stopInitialMessages) { stopInitialMessages(); stopInitialMessages = null; }
+      pendingSeen.clear();
+      clearUnread();
       stopReceipts.forEach(stop => stop());
       stopReceipts = [];
       chatBox.replaceChildren();
@@ -463,6 +524,7 @@
       rememberUsername(user.displayName, user.email);
       showStatus('Verific accesul la conversație…');
       const messagesRef = query(ref(db, 'privateChat/messages'), limitToLast(100));
+      let initialMessagesLoaded = false;
       stopMessages = onChildAdded(messagesRef, snapshot => {
         const message = snapshot.val();
         if (!message || typeof message.text !== 'string') return;
@@ -496,7 +558,8 @@
         chatBox.append(bubble);
         chatBox.scrollTop = chatBox.scrollHeight;
         if (message.uid !== user.uid) {
-          if (chatIsVisible) markMessageSeen(snapshot.key, user.uid).catch(() => {});
+          if (initialMessagesLoaded) notifyIncomingMessage();
+          if (chatIsActive()) markMessageSeen(snapshot.key, user.uid).catch(() => {});
           else pendingSeen.add(snapshot.key);
         }
         showStatus('Conectat la conversație. Mesajele se sincronizează în timp real.');
@@ -505,6 +568,10 @@
           ? 'Contul a fost creat, însă încă nu este autorizat în regulile bazei de date. Lasă regulile blocate și trimite-mi o captură din Authentication → Users ca să continuăm în siguranță.'
           : 'Nu s-a putut încărca conversația. Verifică setările Firebase.', true);
       });
+      // Firebase delivers the initial child events before the matching value event.
+      stopInitialMessages = onValue(messagesRef, () => {
+        initialMessagesLoaded = true;
+      }, () => {}, { onlyOnce:true });
     });
     compose.addEventListener('submit', async event => {
       event.preventDefault();
