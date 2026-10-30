@@ -16,13 +16,13 @@
     h1 { margin:14px 0 10px; font-size:clamp(30px,8vw,46px); letter-spacing:-1.7px; line-height:1.12; }
     .subtitle { max-width:370px; margin:0 auto; color:#806c70; font-size:16px; line-height:1.65; }
     .question { margin:27px 0 22px; font-size:20px; font-weight:700; }
-    .buttons { position:relative; display:flex; align-items:center; justify-content:center; gap:15px; min-height:126px; }
+    .buttons { position:relative; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:15px; min-height:126px; }
     .continue-wrap { margin-top:18px; }
     #continue { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
     #continue:hover { transform:translateY(-2px) scale(1.03); box-shadow:0 12px 24px #d96f8c55; }
     button { border:0; border-radius:999px; padding:14px 28px; font:700 16px inherit; font-family:inherit; font-size:16px; cursor:pointer; transition:transform .2s,box-shadow .2s,background .2s; }
-    #yes { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
-    #yes:hover { transform:translateY(-2px) scale(1.04); box-shadow:0 12px 24px #d96f8c55; }
+    #yes, #maybe { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; }
+    #yes:hover, #maybe:hover { transform:translateY(-2px) scale(1.04); box-shadow:0 12px 24px #d96f8c55; }
     #no { color:white; background:linear-gradient(135deg,#ed91a6,#d96f8c); box-shadow:0 8px 20px #d96f8c40; position:relative; touch-action:manipulation; transform-origin:top left; }
     .hint { margin:15px 0 0; min-height:22px; color:#a18b90; font-size:13px; }
     .response { display:none; margin:28px auto 0; max-width:390px; animation:appear .55s ease both; }
@@ -111,6 +111,7 @@
     <div class="buttons" id="buttons">
       <button id="yes" type="button">DA</button>
       <button id="no" type="button" aria-label="Nu (butonul se ferește în joacă)">Nu</button>
+      <button id="maybe" type="button">Poate</button>
     </div>
     <section class="response" id="response" aria-live="polite">
       <svg class="penguins" viewBox="0 0 160 110" role="img" aria-label="Doi pinguini care se îmbrățișează">
@@ -217,19 +218,19 @@
     let noScale = 1;
     function placeNo({ pointerX = null, pointerY = null, scale = noScale } = {}) {
       const areaRect = area.getBoundingClientRect();
-      const yesRect = yes.getBoundingClientRect();
+      const fixedRects = [yes, document.getElementById('maybe')].map(button => button.getBoundingClientRect());
       const width = no.offsetWidth * scale;
       const height = no.offsetHeight * scale;
       const maxX = Math.max(0, area.clientWidth - width);
       const maxY = Math.max(0, area.clientHeight - height);
-      const yesBox = {
-        left:yesRect.left - areaRect.left - 12,
-        right:yesRect.right - areaRect.left + 12,
-        top:yesRect.top - areaRect.top - 12,
-        bottom:yesRect.bottom - areaRect.top + 12
-      };
+      const fixedBoxes = fixedRects.map(rect => ({
+        left:rect.left - areaRect.left - 12,
+        right:rect.right - areaRect.left + 12,
+        top:rect.top - areaRect.top - 12,
+        bottom:rect.bottom - areaRect.top + 12
+      }));
       const safe = (x, y) => {
-        const overlapsYes = x < yesBox.right && x + width > yesBox.left && y < yesBox.bottom && y + height > yesBox.top;
+        const overlapsYes = fixedBoxes.some(box => x < box.right && x + width > box.left && y < box.bottom && y + height > box.top);
         const overlapsPointer = pointerX !== null && pointerY !== null &&
           pointerX >= areaRect.left + x - 24 && pointerX <= areaRect.left + x + width + 24 &&
           pointerY >= areaRect.top + y - 24 && pointerY <= areaRect.top + y + height + 24;
@@ -336,11 +337,13 @@
         sendStatus.textContent = error.message || 'Nu s-a putut trimite acum. Verifică legătura la internet și încearcă din nou.';
       });
     });
-    document.getElementById('yes').addEventListener('click', () => {
+    function showResponse(event) {
       document.getElementById('response').classList.add('show');
-      document.getElementById('yes').disabled = true;
+      event.currentTarget.disabled = true;
       document.getElementById('response').scrollIntoView({ behavior:'smooth', block:'nearest' });
-    });
+    }
+    yes.addEventListener('click', showResponse);
+    document.getElementById('maybe').addEventListener('click', showResponse);
   </script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js';
